@@ -1,21 +1,21 @@
 [
   {
     "id": "136e69d6-0514-421f-bd9b-471a4352c6a8",
-    "student_name": "Joln Williamn",
+    "name": "Joln Williamn",
     "quizz": "8.5",
     "midTerm": "9",
     "final": "8.5"
   },
   {
     "id": "af6326d3-5bf2-4b2e-b939-104fd1896a1f",
-    "student_name": "Peter Louise",
+    "name": "Peter Louise",
     "quizz": "8.5",
     "midTerm": "8.75",
     "final": "8"
   },
   {
     "id": "6483755d-7857-4187-8bfc-942795ea1ed1",
-    "student_name": "Alice Marie",
+    "name": "Alice Marie",
     "quizz": "9.5",
     "midTerm": "8",
     "final": "7.6"
