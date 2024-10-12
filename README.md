@@ -1,2 +1,1 @@
-# class-mgmt
-Class Management
+# Class Management
