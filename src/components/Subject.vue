@@ -210,7 +210,7 @@ function cancel(item) {
                 <span>No available students.</span>
               </div>
             </td>
-          </tr>          
+          </tr>
         </tbody>
         <tfoot>
           <tr>
@@ -274,7 +274,7 @@ body {
 }
 
 .subject-wrapper {
-  max-width: 1366px;
+  max-width: 75vw;
   margin-inline: auto;
 
   padding-top: 60px;
@@ -295,7 +295,8 @@ body {
     border-bottom-color: #272727;
   }
 
-  tbody {
+  tfoot {
+    border-top: 1px solid #272727;
   }
 }
 </style>
