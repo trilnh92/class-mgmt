@@ -2,10 +2,7 @@
 import { ref, onMounted } from "vue";
 import {
   PencilIcon,
-  TrashIcon,
-  PlusIcon,
-  CheckIcon,
-  XMarkIcon,
+  TrashIcon
 } from "@heroicons/vue/24/solid";
 import { v4 as uuid } from "uuid";
 import mathScoreData from "../assets/data/mathScore.json";
@@ -17,26 +14,11 @@ import * as yup from "yup";
 
 //
 const mathScores = ref(mathScoreData);
-
+//
 const modalTitle = ref("");
 const isShowModal = ref(false);
 const showRemoveForm = ref(false);
-
-const student = ref({
-  id: "",
-  name: "",
-  quizz: "",
-  midTerm: "",
-  final: "",
-});
-
-const isModifyForm = ref(false);
-
-const isUpdate = ref(false);
-const isRemove = ref(false);
-
-const userAction = ref();
-
+//
 function calcAverage(item) {
   return item
     ? parseFloat(
@@ -57,16 +39,6 @@ function addStudent(data) {
   mathScores.value.push(Object.assign({}, data));
 
   closeModal();
-}
-
-function modilfyStudent(item) {
-  // console.log("modilfy student", item);
-
-  userAction.value = "update";
-  //
-  const index = mathScores.value.findIndex((target) => target.id === item.id);
-  index !== -1 ? (mathScores.value[index].isModifyForm = true) : "";
-  //
 }
 
 function updateStudent(student) {
