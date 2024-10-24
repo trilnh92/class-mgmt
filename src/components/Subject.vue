@@ -2,31 +2,23 @@
 import { ref, onMounted } from "vue";
 import {
   PencilIcon,
-  TrashIcon,
-  PlusIcon,
-  CheckIcon,
-  XMarkIcon,
+  TrashIcon
 } from "@heroicons/vue/24/solid";
 import { v4 as uuid } from "uuid";
 import mathScoreData from "../assets/data/mathScore.json";
+//
+import { useForm } from "vee-validate";
 
+import { toTypedSchema } from "@vee-validate/yup";
+import * as yup from "yup";
+
+//
 const mathScores = ref(mathScoreData);
-
-const student = ref({
-  id: "",
-  name: "",
-  quizz: "",
-  midTerm: "",
-  final: "",
-});
-
-const isModifyForm = ref(false);
-
-const isUpdate = ref(false);
-const isRemove = ref(false);
-
-const userAction = ref();
-
+//
+const modalTitle = ref("");
+const isShowModal = ref(false);
+const showRemoveForm = ref(false);
+//
 function calcAverage(item) {
   return item
     ? parseFloat(
@@ -41,79 +33,245 @@ onMounted(() => {
   });
 });
 
-function addStudent() {
-  student.value.id = uuid();
-  mathScores.value.push(Object.assign({}, student.value));
+function addStudent(data) {
+  data.id = uuid();
 
-  // Reset
+  mathScores.value.push(Object.assign({}, data));
 
-  student.value.id = "";
-  student.value.name = "";
-  student.value.quizz = "";
-  student.value.midTerm = "";
-  student.value.final = "";
-
-  console.log(student.value, mathScores.value);
-}
-
-function modilfyStudent(item) {
-  console.log("modilfy student", item);
-
-  userAction.value = "update";
-  //
-  const index = mathScores.value.findIndex((target) => target.id === item.id);
-  index !== -1 ? (mathScores.value[index].isModifyForm = true) : "";
-  //
+  closeModal();
 }
 
 function updateStudent(student) {
-  console.log("update student", student);
+  // console.log("update student", student);
   //
   const index = mathScores.value.findIndex(
     (target) => target.id === student.id
   );
+  //
   index !== -1 ? (mathScores.value[index].isModifyForm = true) : "";
   //
   mathScores.value.splice(index, 1, student);
-  mathScores.value[index].isModifyForm = false;
   //
-  console.log("UPDATE AFTER", mathScores.value);
+  // console.log("UPDATE AFTER", mathScores.value);
+
+  closeModal();
 }
 
-function deleteStudent(studentId) {
-  console.log("remove student", studentId);
+function deleteStudent(student) {
+  console.log("remove student", student);
   //
-  const index = mathScores.value.findIndex((target) => target.id === studentId);
+  const index = mathScores.value.findIndex(
+    (target) => target.id === student.id
+  );
   index !== -1 ? mathScores.value.splice(index, 1) : "";
   //
   console.log("DELETE AFTER", mathScores.value);
+  //
+  showRemoveForm.value = false;
+  closeModal();
 }
 
-function confirm(student) {
-  if (userAction.value === "update") {
-    updateStudent(student);
+function openModal(action, data) {
+  // console.log("Open Modal");
+
+  const obj = data ? JSON.parse(JSON.stringify(data, null, 2)) : "";
+
+  if (action === "add") {
+    modalTitle.value = "Add New Student";
+  } else if (action === "update") {
+    modalTitle.value = "Update Student";
+    setValues(obj);
+  } else {
+    modalTitle.value = "Remove Student";
+
+    showRemoveForm.value = true;
+    setValues(obj);
   }
-  //
-  userAction.value = "";
+
+  isShowModal.value = true;
 }
 
-function cancel(item) {
-  console.log("Cancel");
-  //
-  userAction.value = "";
-  item.isModifyForm = false;
+function closeModal() {
+  isShowModal.value = false;
+  showRemoveForm.value = false;
+  resetForm();
 }
+
+const { errors, handleSubmit, defineField, resetForm, setValues } = useForm({
+  validationSchema: toTypedSchema(
+    yup.object({
+      id: yup.string().default(""),
+      name: yup.string().required("Student Name is required").default(""),
+      quizz: yup
+        .number()
+        .typeError("Student Quizz must be a number")
+        .transform((val) => Number(val))
+        .required("Student Quizz is required")
+        .min(0, "Student Quizz must be at least 0")
+        .max(10, "Student Quizz must be no more than 10")
+        .default(0),
+      midTerm: yup
+        .number()
+        .typeError("Student Mid Term must be a number")
+        .transform((val) => Number(val))
+        .required("Student Mid Term is required")
+        .min(0, "Student Mid Term must be at least 0")
+        .max(10, "Student Mid Term must be no more than 10")
+        .default(0),
+      final: yup
+        .number()
+        .typeError("Student Final must be a number")
+        .transform((val) => Number(val))
+        .required("Student Final is required")
+        .min(0, "Student Final must be at least 0")
+        .max(10, "Student Final must be no more than 10")
+        .default(0),
+    })
+  ),
+});
+const [id, idAttrs] = defineField("id");
+const [name, nameAttrs] = defineField("name");
+const [quizz, quizzAttrs] = defineField("quizz");
+const [midTerm, midTermAttrs] = defineField("midTerm");
+const [final, finalAttrs] = defineField("final");
+
+const onSubmit = handleSubmit((values) => {
+  // console.log("Submit", values, JSON.stringify(values, null, 2));
+
+  let data = JSON.parse(JSON.stringify(values, null, 2));
+
+  if (data.id === "") {
+    // console.log("Add");
+    addStudent(data);
+  } else {
+    if (!showRemoveForm.value) {
+      // console.log("Update");
+      updateStudent(data);
+    } else {
+      // console.log("Remove");
+      deleteStudent(data);
+    }
+  }
+});
 </script>
 
 <template>
+  <!-- Modal -->
+  <dialog id="studentModal" class="modal" open v-if="isShowModal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">{{ modalTitle }}</h3>
+      <div class="modal-action">
+        <form method="dialog" @submit="onSubmit">
+          <div class="felx w-full" v-if="!showRemoveForm">
+            <input v-model="id" v-bind="idAttrs" type="text" v-show="false" />
+
+            <label class="form-control w-full">
+              <div class="label">
+                <span class="label-text">Student Name</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter Student Name"
+                class="input input-bordered w-full max-w-xs"
+                :class="{ 'input-error': errors.name }"
+                v-model="name"
+                v-bind="nameAttrs"
+              />
+              <p class="error-message">{{ errors.name }}</p>
+            </label>
+            <div class="divider"></div>
+            <label class="form-control w-full max-w-xs">
+              <div class="label">
+                <span class="label-text">Quizz Score</span>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Enter Quizz Score"
+                class="input input-bordered w-full max-w-xs"
+                :class="{ 'input-error': errors.quizz }"
+                v-model="quizz"
+                v-bind="quizzAttrs"
+              />
+
+              <p class="error-message">{{ errors.quizz }}</p>
+            </label>
+            <div class="divider"></div>
+            <label class="form-control w-full max-w-xs">
+              <div class="label">
+                <span class="label-text">Mid-term Score</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter Mid-term Score"
+                class="input input-bordered w-full max-w-xs"
+                v-model="midTerm"
+                v-bind="midTermAttrs"
+                :class="{ 'input-error': errors.midTerm }"
+              />
+              <p class="error-message">{{ errors.midTerm }}</p>
+            </label>
+            <div class="divider"></div>
+            <label class="form-control w-full max-w-xs">
+              <div class="label">
+                <span class="label-text">Final Score</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter Final Score"
+                class="input input-bordered w-full max-w-xs"
+                v-model="final"
+                v-bind="finalAttrs"
+                :class="{ 'input-error': errors.final }"
+              />
+              <p class="error-message">{{ errors.final }}</p>
+            </label>
+            <div class="divider"></div>
+            <label class="form-control w-full max-w-xs">
+              <div class="label">
+                <span class="label-text">Average</span>
+              </div>
+              <h2 class="card-title">
+                {{
+                  parseFloat(quizz * 0.2 + midTerm * 0.4 + final * 0.4).toFixed(
+                    2
+                  )
+                }}
+              </h2>
+            </label>
+            <div class="divider"></div>
+            <button type="submit" class="btn btn-secondary">Save</button>
+            <button class="btn ml-4" @click="closeModal()">Cancel</button>
+          </div>
+          <div class="felx w-full" v-else>
+            <div class="divider"></div>
+            <h2>
+              Are you sure to remove this student:
+              <b class="bg-secondary">{{ name }}</b> ?
+            </h2>
+            <div class="divider"></div>
+            <button type="submit" class="btn btn-secondary">Yes</button>
+            <button class="btn ml-4" @click="closeModal()">No</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Header -->
   <section class="header-wrapper">
     <h1>Math Score Management</h1>
   </section>
 
-  <h3>{{ mathScores.length }}</h3>
-
+  <!-- List -->
   <section class="subject-wrapper">
     <div class="overflow-x-auto">
+      <button
+        class="btn btn-secondary mb-4 mr-4 float-right"
+        @click="openModal('add', '')"
+      >
+        Add New Student
+      </button>
       <table class="table">
         <thead>
           <tr>
@@ -133,61 +291,21 @@ function cancel(item) {
               {{ index + 1 }}
             </td>
             <td class="hidden">{{ item.id }}</td>
+            <td>{{ item.name }}</td>
             <td>
-              <input
-                v-if="item.isModifyForm"
-                type="text"
-                v-model="item.name"
-                placeholder="Input Student Name"
-                class="input input-bordered w-full max-w-xs"
-              />
-              <span v-else>{{ item.name }}</span>
+              {{ item.quizz }}
             </td>
             <td>
-              <input
-                v-if="item.isModifyForm"
-                type="text"
-                v-model="item.quizz"
-                placeholder="Input Quizz Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-              <span v-else>{{ item.quizz }}</span>
+              {{ item.midTerm }}
             </td>
-            <td>
-              <input
-                v-if="item.isModifyForm"
-                type="text"
-                v-model="item.midTerm"
-                placeholder="Input Mid-Term Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-              <span v-else>{{ item.midTerm }}</span>
-            </td>
-            <td>
-              <input
-                v-if="item.isModifyForm"
-                type="text"
-                v-model="item.final"
-                placeholder="Input Final Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-              <span v-else>{{ item.final }}</span>
-            </td>
+            <td>{{ item.final }}</td>
             <td class="average">{{ calcAverage(item) }}</td>
-            <td v-if="!item.isModifyForm">
-              <button class="btn btn-circle" @click="modilfyStudent(item)">
+            <td>
+              <button class="btn btn-circle" @click="openModal('update', item)">
                 <pencil-icon class="icon size-5 text-green-500" />
               </button>
-              <button class="btn btn-circle" @click="deleteStudent(item.id)">
+              <button class="btn btn-circle" @click="openModal('remove', item)">
                 <trash-icon class="icon size-5 text-red-500" />
-              </button>
-            </td>
-            <td v-else>
-              <button class="btn btn-circle" @click="confirm(item)">
-                <check-icon class="icon size-5 text-green-500" />
-              </button>
-              <button class="btn btn-circle" @click="cancel(item)">
-                <x-mark-icon class="icon size-5 text-red-500" />
               </button>
             </td>
           </tr>
@@ -212,50 +330,6 @@ function cancel(item) {
             </td>
           </tr>
         </tbody>
-        <tfoot>
-          <tr>
-            <td></td>
-            <td class="hidden"></td>
-            <td>
-              <input
-                type="text"
-                v-model="student.name"
-                placeholder="Input Student Name"
-                class="input input-bordered w-full max-w-xs"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                v-model="student.quizz"
-                placeholder="Input Quizz Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                v-model="student.midTerm"
-                placeholder="Input Mid-Term Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                v-model="student.final"
-                placeholder="Input Final Score"
-                class="input input-bordered w-full max-w-xs"
-              />
-            </td>
-            <td class="average">{{ calcAverage(student) }}</td>
-            <td>
-              <button class="btn btn-circle" @click="addStudent()">
-                <plus-icon class="icon size-5 text-green-500" />
-              </button>
-            </td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   </section>
@@ -297,6 +371,26 @@ body {
 
   tfoot {
     border-top: 1px solid #272727;
+  }
+}
+
+.modal-action {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+
+  form {
+    width: 100%;
+  }
+
+  .error-message {
+    margin: 0;
+    padding: 0;
+    padding-block: 15px 0;
+
+    font-size: 14px;
+    font-style: italic;
+    color: #ff6f6f;
   }
 }
 </style>
